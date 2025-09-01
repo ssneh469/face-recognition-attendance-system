@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Test Face Recognition - Face Recognition System{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-12">
+            <div class="card bg-dark text-white">
+                <div class="card-header">
+                    <h3><i class="fas fa-vial me-2"></i>Face Recognition System Test</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Testing Instructions:</strong>
+                        <ol class="mt-2 mb-0">
+                            <li>Go to <a href="{{ url_for('face_recognition') }}" class="text-primary">Face Recognition</a> page</li>
+                            <li>Start the camera</li>
+                            <li>Enable Auto Mode for continuous recognition</li>
+                            <li>Point camera at a registered student's face</li>
+                            <li>System should automatically recognize and mark attendance</li>
+                        </ol>
+                    </div>
+                    
+                    <h5 class="mt-4">Registered Students for Testing:</h5>
+                    {% if students %}
+                    <div class="row">
+                        {% for student in students %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card bg-secondary text-white">
+                                <div class="card-body text-center">
+                                    {% if student.photo %}
+                                    <img src="{{ url_for('static', filename='uploads/' + student.photo) }}" 
+                                         alt="{{ student.name }}" class="rounded-circle mb-2" 
+                                         style="width: 80px; height: 80px; object-fit: cover;">
+                                    {% else %}
+                                    <div class="bg-dark rounded-circle d-inline-flex align-items-center justify-content-center mb-2" 
+                                         style="width: 80px; height: 80px;">
+                                        <i class="fas fa-user fa-2x text-muted"></i>
+                                    </div>
+                                    {% endif %}
+                                    <h6 class="card-title">{{ student.name }}</h6>
+                                    <p class="card-text small">
+                                        <strong>Roll:</strong> {{ student.roll }}<br>
+                                        <strong>Dept:</strong> {{ student.department }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        No students found. Please add some students first to test the face recognition system.
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mt-4">
+                        <a href="{{ url_for('face_recognition') }}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-camera me-2"></i>Go to Face Recognition
+                        </a>
+                        <a href="{{ url_for('add_student') }}" class="btn btn-success btn-lg ms-2">
+                            <i class="fas fa-user-plus me-2"></i>Add Student
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

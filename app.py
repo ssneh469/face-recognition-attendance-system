@@ -271,18 +271,159 @@ def recognize_face():
         faces = face_cascade.detectMultiScale(gray, 1.1, 4)
         
         if len(faces) == 0:
-            return jsonify({'message': 'No face detected'})
+            return jsonify({'message': 'No face detected', 'faces_count': 0})
         
-        # For demo purposes, return a mock recognition
-        # In a real system, you would use a trained model
-        return jsonify({
-            'message': 'Face detected',
-            'faces_count': len(faces),
-            'recognition_result': 'Demo mode - face detected'
-        })
+        # For now, we'll use a simple approach: compare with stored student photos
+        # In a production system, you'd use a trained face recognition model
+        recognized_student = recognize_student_face(opencv_image, gray, faces)
+        
+        if recognized_student:
+            # Mark attendance automatically
+            attendance_result = mark_attendance_for_student(recognized_student)
+            return jsonify({
+                'message': 'Face recognized successfully!',
+                'faces_count': len(faces),
+                'student': {
+                    'name': recognized_student.name,
+                    'roll': recognized_student.roll,
+                    'department': recognized_student.department,
+                    'student_id': recognized_student.student_id
+                },
+                'attendance': attendance_result
+            })
+        else:
+            return jsonify({
+                'message': 'Face detected but not recognized',
+                'faces_count': len(faces),
+                'suggestion': 'Student may not be registered in the system'
+            })
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+def recognize_student_face(image, gray, faces):
+    """
+    Simple face recognition by comparing with stored student photos
+    This is a basic implementation - in production, use a proper face recognition model
+    """
+    try:
+        # Get all students with photos
+        students = Student.query.filter(Student.photo.isnot(None)).all()
+        
+        if not students:
+            return None
+        
+        # For each detected face, try to find a match
+        for (x, y, w, h) in faces:
+            # Extract face region
+            face_roi = gray[y:y+h, x:x+w]
+            
+            # Resize to standard size for comparison
+            face_roi = cv2.resize(face_roi, (100, 100))
+            
+            # Compare with each student's photo
+            best_match = None
+            best_score = 0
+            
+            for student in students:
+                if student.photo:
+                    try:
+                        # Load student photo
+                        student_photo_path = os.path.join(app.config['UPLOAD_FOLDER'], student.photo)
+                        if os.path.exists(student_photo_path):
+                            student_img = cv2.imread(student_photo_path, cv2.IMREAD_GRAYSCALE)
+                            if student_img is not None:
+                                # Resize student photo to same size
+                                student_img = cv2.resize(student_img, (100, 100))
+                                
+                                # Multiple comparison methods for better accuracy
+                                scores = []
+                                
+                                # Method 1: Template matching
+                                result1 = cv2.matchTemplate(face_roi, student_img, cv2.TM_CCOEFF_NORMED)
+                                scores.append(np.max(result1))
+                                
+                                # Method 2: Histogram comparison
+                                hist1 = cv2.calcHist([face_roi], [0], None, [256], [0, 256])
+                                hist2 = cv2.calcHist([student_img], [0], None, [256], [0, 256])
+                                hist_score = cv2.compareHist(hist1, hist2, cv2.HISTCMP_CORREL)
+                                scores.append(max(0, hist_score))  # Normalize to 0-1
+                                
+                                # Method 3: Structural similarity (if available)
+                                try:
+                                    from skimage.metrics import structural_similarity as ssim
+                                    ssim_score = ssim(face_roi, student_img)
+                                    scores.append(max(0, ssim_score))
+                                except ImportError:
+                                    # Fallback to basic correlation
+                                    correlation = np.corrcoef(face_roi.flatten(), student_img.flatten())[0, 1]
+                                    scores.append(max(0, correlation) if not np.isnan(correlation) else 0)
+                                
+                                # Calculate average score
+                                avg_score = np.mean(scores)
+                                
+                                if avg_score > best_score and avg_score > 0.5:  # Lower threshold for better recognition
+                                    best_score = avg_score
+                                    best_match = student
+                                    print(f"Student {student.name} matched with score: {avg_score:.3f}")
+                                    
+                    except Exception as e:
+                        print(f"Error processing student photo {student.photo}: {e}")
+                        continue
+            
+            if best_match:
+                return best_match
+        
+        return None
+        
+    except Exception as e:
+        print(f"Error in face recognition: {e}")
+        return None
+
+def mark_attendance_for_student(student):
+    """
+    Mark attendance for a recognized student
+    """
+    try:
+        # Check if already marked today
+        today = datetime.now().strftime('%d/%m/%Y')
+        existing = Attendance.query.filter_by(
+            student_id=student.student_id, 
+            date=today
+        ).first()
+        
+        if existing:
+            return {
+                'status': 'already_marked',
+                'message': f'Attendance already marked for {student.name} today at {existing.time}'
+            }
+        
+        # Mark attendance
+        new_attendance = Attendance(
+            student_id=student.student_id,
+            roll=student.roll,
+            name=student.name,
+            department=student.department,
+            time=datetime.now().strftime('%H:%M:%S'),
+            date=today,
+            status='Present'
+        )
+        
+        db.session.add(new_attendance)
+        db.session.commit()
+        
+        return {
+            'status': 'marked',
+            'message': f'Attendance marked for {student.name} at {new_attendance.time}',
+            'time': new_attendance.time
+        }
+        
+    except Exception as e:
+        db.session.rollback()
+        return {
+            'status': 'error',
+            'message': f'Error marking attendance: {str(e)}'
+        }
 
 @app.route('/api/mark_attendance', methods=['POST'])
 def mark_attendance():
@@ -324,6 +465,16 @@ def mark_attendance():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/test_face_recognition')
+def test_face_recognition():
+    """Test route to verify face recognition system"""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    # Get some sample students for testing
+    students = Student.query.limit(5).all()
+    return render_template('test_face_recognition.html', students=students)
 
 if __name__ == '__main__':
     with app.app_context():
