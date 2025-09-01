@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+
+{% block title %}Face Recognition - Face Recognition System{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Main body styling to match the dark theme */
+    body {
+        background-color: #111827;
+        background-image: linear-gradient(145deg, #1f2937 0%, #111827 100%);
+        color: #d1d5db;
+        font-family: 'Inter', sans-serif;
+    }
+
+    /* General card style using the "glassmorphism" effect */
+    .glass-card {
+        background-color: rgba(31, 41, 55, 0.5);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-radius: 1rem;
+        border: 1px solid rgba(75, 85, 99, 0.5);
+        padding: 2rem;
+        transition: all 0.3s ease;
+    }
+    
+    /* Video container and overlay */
+    .video-container {
+        position: relative;
+        border-radius: 0.75rem;
+        overflow: hidden;
+        border: 1px solid rgba(75, 85, 99, 0.5);
+    }
+    #video {
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+    .camera-overlay {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(17, 24, 39, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
+
+    /* Camera controls styling */
+    .camera-controls .btn {
+        border-radius: 0.5rem;
+        font-weight: 600;
+        padding: 0.6rem 1.2rem;
+    }
+    
+    /* Status indicator */
+    .status-indicator {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-right: 0.5rem;
+        transition: background-color 0.3s ease;
+    }
+    .status-indicator.active {
+        background: #22c55e; /* Green */
+        animation: pulse 2s infinite;
+    }
+    .status-indicator.inactive {
+        background: #ef4444; /* Red */
+    }
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+        70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+    }
+
+    /* Recognition results cards */
+    .result-card {
+        background-color: rgba(55, 65, 81, 0.6);
+        border-radius: 0.75rem;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        border-left: 4px solid #4b5563;
+    }
+    .result-card.success { border-left-color: #22c55e; }
+    .result-card.warning { border-left-color: #f59e0b; }
+    .result-card.error { border-left-color: #ef4444; }
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <!-- Camera Container -->
+        <div class="col-lg-8 mb-4 mb-lg-0">
+            <div class="glass-card h-100">
+                <h3 class="mb-4 text-white"><i class="fas fa-camera me-2"></i>Live Recognition</h3>
+                
+                <div class="video-container">
+                    <video id="video" autoplay muted></video>
+                    <div class="camera-overlay" id="cameraOverlay">
+                        <div>
+                            <i class="fas fa-video-slash fa-2x mb-3 text-secondary"></i>
+                            <p class="text-secondary">Camera is off</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-center flex-wrap gap-2 mt-4">
+                    <button class="btn btn-success" id="startCamera"><i class="fas fa-play me-2"></i>Start</button>
+                    <button class="btn btn-danger" id="stopCamera" disabled><i class="fas fa-stop me-2"></i>Stop</button>
+                    <button class="btn btn-primary" id="recognizeFace" disabled><i class="fas fa-search me-2"></i>Recognize</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Results and Status -->
+        <div class="col-lg-4">
+            <div class="glass-card h-100">
+                <h4 class="mb-3 text-white"><i class="fas fa-clipboard-check me-2"></i>Status & Results</h4>
+                
+                <!-- Status -->
+                <div class="d-flex align-items-center mb-3">
+                    <span class="status-indicator inactive" id="statusIndicator"></span>
+                    <span id="statusText">Camera Inactive</span>
+                </div>
+
+                <!-- Recognition Results -->
+                <div id="resultsContainer">
+                    <div class="result-card">
+                        <p class="mb-0 small">Results will appear here...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Canvas for processing (hidden) -->
+<canvas id="canvas" class="d-none"></canvas>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Note: The JavaScript logic remains the same as it handles functionality, not styling.
+    // DOM elements are re-selected based on their IDs.
+    let stream = null;
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let isCameraActive = false;
+
+    const startCameraBtn = document.getElementById('startCamera');
+    const stopCameraBtn = document.getElementById('stopCamera');
+    const recognizeFaceBtn = document.getElementById('recognizeFace');
+    const cameraOverlay = document.getElementById('cameraOverlay');
+    const statusIndicator = document.getElementById('statusIndicator');
+    const statusText = document.getElementById('statusText');
+    const resultsContainer = document.getElementById('resultsContainer');
+
+    startCameraBtn.addEventListener('click', startCamera);
+    stopCameraBtn.addEventListener('click', stopCamera);
+    recognizeFaceBtn.addEventListener('click', recognizeFace);
+
+    async function startCamera() {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 640 }, height: { ideal: 480 } } });
+            video.srcObject = stream;
+            isCameraActive = true;
+            
+            startCameraBtn.disabled = true;
+            stopCameraBtn.disabled = false;
+            recognizeFaceBtn.disabled = false;
+            cameraOverlay.style.display = 'none';
+            statusIndicator.className = 'status-indicator active';
+            statusText.textContent = 'Camera Active';
+            
+            showResult('Camera started successfully.', 'success');
+        } catch (error) {
+            showResult(`Error accessing camera: ${error.message}`, 'error');
+        }
+    }
+
+    function stopCamera() {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            stream = null;
+        }
+        video.srcObject = null;
+        isCameraActive = false;
+        
+        startCameraBtn.disabled = false;
+        stopCameraBtn.disabled = true;
+        recognizeFaceBtn.disabled = true;
+        cameraOverlay.style.display = 'flex';
+        statusIndicator.className = 'status-indicator inactive';
+        statusText.textContent = 'Camera Inactive';
+        
+        showResult('Camera stopped.', 'warning');
+    }
+
+    async function recognizeFace() {
+        if (!isCameraActive) {
+            showResult('Camera is not active.', 'error');
+            return;
+        }
+        
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = canvas.toDataURL('image/jpeg');
+        
+        showResult('Recognizing face...', 'info');
+
+        try {
+            const response = await fetch('/api/recognize_face', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: imageData })
+            });
+            const result = await response.json();
+            
+            if (response.ok) {
+                showResult(result.message || 'Recognition complete.', 'success');
+            } else {
+                showResult(result.error || 'Recognition failed.', 'error');
+            }
+        } catch (error) {
+            showResult(`Recognition request failed: ${error.message}`, 'error');
+        }
+    }
+
+    function showResult(message, type = 'info') {
+        const resultCard = document.createElement('div');
+        resultCard.className = `result-card ${type}`;
+        resultCard.innerHTML = `<p class="mb-0 small">${message}</p>`;
+        
+        // Clear previous results and add the new one
+        resultsContainer.innerHTML = '';
+        resultsContainer.appendChild(resultCard);
+    }
+
+    window.addEventListener('beforeunload', stopCamera);
+</script>
+{% endblock %}
