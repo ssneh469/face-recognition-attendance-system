@@ -382,3 +382,4 @@ window.FaceRecognitionUtils = {
     exportToCSV,
     filterTable
 };
+

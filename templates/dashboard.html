@@ -118,15 +118,12 @@
 {% block content %}
 <div class="container py-5">
     <div class="row">
-        <!-- Main Content Area (Left Column) -->
         <div class="col-lg-8">
-            <!-- Welcome Header -->
             <div class="welcome-header mb-4">
                 <h1>Welcome, {{ session.user_name }}!</h1>
                 <p>This is your central hub for the Face Recognition System.</p>
             </div>
             
-            <!-- Statistics Cards -->
             <div class="row mb-4">
                 <div class="col-md-4 mb-4">
                     <div class="glass-card stats-card h-100">
@@ -151,7 +148,6 @@
                 </div>
             </div>
 
-            <!-- Quick Actions -->
             <div class="glass-card">
                  <h4 class="mb-4 text-white">Quick Actions</h4>
                  <div class="row">
@@ -164,7 +160,7 @@
                         </a>
                     </div>
                      <div class="col-md-6 mb-3">
-                        <a href="{{ url_for('face_recognition') }}" class="text-decoration-none">
+                        <a href="{{ url_for('face_recognition_page') }}" class="text-decoration-none">
                             <div class="glass-card action-card h-100">
                                 <div class="icon"><i class="fas fa-camera"></i></div>
                                 <h5>Face Recognition</h5>
@@ -191,7 +187,6 @@
             </div>
         </div>
 
-        <!-- Sidebar (Right Column) -->
         <div class="col-lg-4 mt-4 mt-lg-0">
             <div class="glass-card sidebar-card mb-4">
                 <div class="card-header"><i class="fas fa-info-circle me-2"></i>System Information</div>
@@ -214,4 +209,3 @@
     </div>
 </div>
 {% endblock %}
-

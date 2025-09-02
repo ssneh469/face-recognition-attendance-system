@@ -9,7 +9,7 @@ from datetime import datetime
 import base64
 from PIL import Image
 import io
-import json
+import face_recognition # New import for accurate face recognition
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here'
@@ -23,7 +23,13 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 db = SQLAlchemy(app)
 
-# Database Models
+# --- Globals for Face Recognition Data ---
+# These will hold the face encodings and corresponding student data in memory
+known_face_encodings = []
+known_face_data = []
+
+
+# --- Database Models ---
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     fname = db.Column(db.String(50), nullable=False)
@@ -63,7 +69,57 @@ class Attendance(db.Model):
     date = db.Column(db.String(20), nullable=False)
     status = db.Column(db.String(20), default='Present')
 
-# Routes
+
+# --- Face Recognition Helper Functions ---
+def load_known_faces():
+    """
+    Load face encodings and student data from the database and photos.
+    This function is called on startup and can be re-called to refresh data.
+    """
+    global known_face_encodings, known_face_data
+    
+    # Clear existing data
+    known_face_encodings = []
+    known_face_data = []
+
+    try:
+        students = Student.query.all()
+        print(f"Loading {len(students)} student(s) for face recognition...")
+        
+        for student in students:
+            photo_path = os.path.join(app.config['UPLOAD_FOLDER'], student.photo)
+            if os.path.exists(photo_path):
+                try:
+                    # Load image using face_recognition library
+                    student_image = face_recognition.load_image_file(photo_path)
+                    
+                    # Get face encodings. We assume one face per photo.
+                    # The model might not find a face if the image is unclear.
+                    face_encodings = face_recognition.face_encodings(student_image)
+                    
+                    if face_encodings:
+                        student_encoding = face_encodings[0]
+                        known_face_encodings.append(student_encoding)
+                        known_face_data.append({
+                            "id": student.id,
+                            "student_id": student.student_id,
+                            "name": student.name,
+                            "roll": student.roll,
+                            "department": student.department
+                        })
+                    else:
+                        print(f"Warning: No face found in photo for student {student.name} ({student.photo})")
+
+                except Exception as e:
+                    print(f"Error processing photo {student.photo} for {student.name}: {e}")
+            else:
+                print(f"Warning: Photo not found for student {student.name} at path: {photo_path}")
+
+        print(f"Successfully loaded {len(known_face_encodings)} known faces.")
+    except Exception as e:
+        print(f"Error loading known faces from database: {e}")
+
+# --- Routes ---
 @app.route('/')
 def index():
     if 'user_id' in session:
@@ -75,9 +131,7 @@ def login():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
-        
         user = User.query.filter_by(email=email).first()
-        
         if user and check_password_hash(user.password, password):
             session['user_id'] = user.id
             session['user_name'] = f"{user.fname} {user.lname}"
@@ -86,12 +140,12 @@ def login():
             return redirect(url_for('dashboard'))
         else:
             flash('Invalid email or password', 'error')
-    
     return render_template('login.html')
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
+        # ... (Your existing registration code is fine, no changes needed here) ...
         fname = request.form['fname']
         lname = request.form['lname']
         contact = request.form['contact']
@@ -114,25 +168,19 @@ def register():
             fname=fname, lname=lname, contact=contact, email=email,
             securityQ=securityQ, securityA=securityA, password=hashed_password
         )
-        
         db.session.add(new_user)
         db.session.commit()
-        
         flash('Registration successful! Please login.', 'success')
         return redirect(url_for('login'))
-    
     return render_template('register.html')
 
 @app.route('/dashboard')
 def dashboard():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    
-    # Get counts for dashboard
     total_students = Student.query.count()
     total_attendance = Attendance.query.count()
     today_attendance = Attendance.query.filter_by(date=datetime.now().strftime('%d/%m/%Y')).count()
-    
     return render_template('dashboard.html', 
                          total_students=total_students,
                          total_attendance=total_attendance,
@@ -142,7 +190,6 @@ def dashboard():
 def students():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    
     students = Student.query.all()
     return render_template('students.html', students=students)
 
@@ -150,9 +197,8 @@ def students():
 def add_student():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    
     if request.method == 'POST':
-        # Handle file upload
+        # ... (Your existing add_student code is fine, no changes needed here) ...
         if 'photo' not in request.files:
             flash('No photo uploaded', 'error')
             return render_template('add_student.html')
@@ -184,58 +230,43 @@ def add_student():
                 teacher=request.form['teacher'],
                 photo=filename
             )
-            
             db.session.add(new_student)
             db.session.commit()
-            
-            flash('Student added successfully!', 'success')
+            flash('Student added successfully! Consider reloading faces.', 'success')
             return redirect(url_for('students'))
-    
     return render_template('add_student.html')
 
 @app.route('/delete_student/<int:student_id>', methods=['POST'])
 def delete_student(student_id):
     if 'user_id' not in session:
-        flash('Please login first', 'error')
         return redirect(url_for('login'))
-    
+    # ... (Your existing delete_student code is fine, no changes needed here) ...
     try:
-        # Find the student
         student = Student.query.get_or_404(student_id)
-        
-        # Delete the photo file if it exists
         if student.photo:
             photo_path = os.path.join(app.config['UPLOAD_FOLDER'], student.photo)
             if os.path.exists(photo_path):
                 os.remove(photo_path)
-        
-        # Delete attendance records for this student
         Attendance.query.filter_by(student_id=student.student_id).delete()
-        
-        # Delete the student
         db.session.delete(student)
         db.session.commit()
-        
         flash(f'Student {student.name} deleted successfully!', 'success')
-        
     except Exception as e:
         db.session.rollback()
         flash(f'Error deleting student: {str(e)}', 'error')
-    
     return redirect(url_for('students'))
 
 @app.route('/face_recognition')
-def face_recognition():
+@app.route('/face_recognition_page')
+def face_recognition_page():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    
     return render_template('face_recognition.html')
 
 @app.route('/attendance')
 def attendance():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    
     attendance_records = Attendance.query.order_by(Attendance.date.desc(), Attendance.time.desc()).all()
     return render_template('attendance.html', attendance_records=attendance_records)
 
@@ -245,255 +276,144 @@ def logout():
     flash('Logged out successfully', 'success')
     return redirect(url_for('login'))
 
-# API Routes for AJAX
+
+# --- API Routes for AJAX ---
+
 @app.route('/api/recognize_face', methods=['POST'])
 def recognize_face():
+    """
+    This is the new, improved face recognition endpoint.
+    """
     if 'user_id' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
     
     try:
-        # Get image data from request
         image_data = request.json.get('image')
         if not image_data:
-            return jsonify({'error': 'No image data'}), 400
+            return jsonify({'error': 'No image data provided'}), 400
         
         # Decode base64 image
         image_data = image_data.split(',')[1]
         image_bytes = base64.b64decode(image_data)
-        image = Image.open(io.BytesIO(image_bytes))
+        image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
         
-        # Convert to OpenCV format
-        opencv_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
-        
-        # Face detection using Haar Cascade
-        face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-        gray = cv2.cvtColor(opencv_image, cv2.COLOR_BGR2GRAY)
-        faces = face_cascade.detectMultiScale(gray, 1.1, 4)
-        
-        if len(faces) == 0:
+        # Convert to numpy array for face_recognition library
+        rgb_image = np.array(image)
+
+        # Find all face locations and encodings in the current frame
+        face_locations = face_recognition.face_locations(rgb_image)
+        face_encodings = face_recognition.face_encodings(rgb_image, face_locations)
+
+        if not face_encodings:
             return jsonify({'message': 'No face detected', 'faces_count': 0})
-        
-        # For now, we'll use a simple approach: compare with stored student photos
-        # In a production system, you'd use a trained face recognition model
-        recognized_student = recognize_student_face(opencv_image, gray, faces)
-        
-        if recognized_student:
-            # Mark attendance automatically
-            attendance_result = mark_attendance_for_student(recognized_student)
+
+        recognized_students = []
+
+        for face_encoding in face_encodings:
+            # See if the face is a match for the known face(s)
+            matches = face_recognition.compare_faces(known_face_encodings, face_encoding, tolerance=0.6)
+            
+            # Use the known face with the smallest distance to the new face
+            face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
+            
+            if len(face_distances) > 0:
+                best_match_index = np.argmin(face_distances)
+                if matches[best_match_index]:
+                    recognized_student_data = known_face_data[best_match_index]
+                    
+                    # Mark attendance and add to our list for the response
+                    attendance_result = mark_attendance_for_student(recognized_student_data)
+                    
+                    recognized_students.append({
+                        'student': recognized_student_data,
+                        'attendance': attendance_result
+                    })
+
+        if recognized_students:
             return jsonify({
-                'message': 'Face recognized successfully!',
-                'faces_count': len(faces),
-                'student': {
-                    'name': recognized_student.name,
-                    'roll': recognized_student.roll,
-                    'department': recognized_student.department,
-                    'student_id': recognized_student.student_id
-                },
-                'attendance': attendance_result
+                'message': 'Face(s) recognized successfully!',
+                'faces_count': len(face_locations),
+                'recognized_students': recognized_students
             })
         else:
             return jsonify({
                 'message': 'Face detected but not recognized',
-                'faces_count': len(faces),
-                'suggestion': 'Student may not be registered in the system'
+                'faces_count': len(face_locations),
+                'suggestion': 'Student may not be registered or photo is unclear.'
             })
-        
+
     except Exception as e:
+        print(f"Error in /api/recognize_face: {e}")
         return jsonify({'error': str(e)}), 500
 
-def recognize_student_face(image, gray, faces):
-    """
-    Simple face recognition by comparing with stored student photos
-    This is a basic implementation - in production, use a proper face recognition model
-    """
-    try:
-        # Get all students with photos
-        students = Student.query.filter(Student.photo.isnot(None)).all()
-        
-        if not students:
-            return None
-        
-        # For each detected face, try to find a match
-        for (x, y, w, h) in faces:
-            # Extract face region
-            face_roi = gray[y:y+h, x:x+w]
-            
-            # Resize to standard size for comparison
-            face_roi = cv2.resize(face_roi, (100, 100))
-            
-            # Compare with each student's photo
-            best_match = None
-            best_score = 0
-            
-            for student in students:
-                if student.photo:
-                    try:
-                        # Load student photo
-                        student_photo_path = os.path.join(app.config['UPLOAD_FOLDER'], student.photo)
-                        if os.path.exists(student_photo_path):
-                            student_img = cv2.imread(student_photo_path, cv2.IMREAD_GRAYSCALE)
-                            if student_img is not None:
-                                # Resize student photo to same size
-                                student_img = cv2.resize(student_img, (100, 100))
-                                
-                                # Multiple comparison methods for better accuracy
-                                scores = []
-                                
-                                # Method 1: Template matching
-                                result1 = cv2.matchTemplate(face_roi, student_img, cv2.TM_CCOEFF_NORMED)
-                                scores.append(np.max(result1))
-                                
-                                # Method 2: Histogram comparison
-                                hist1 = cv2.calcHist([face_roi], [0], None, [256], [0, 256])
-                                hist2 = cv2.calcHist([student_img], [0], None, [256], [0, 256])
-                                hist_score = cv2.compareHist(hist1, hist2, cv2.HISTCMP_CORREL)
-                                scores.append(max(0, hist_score))  # Normalize to 0-1
-                                
-                                # Method 3: Structural similarity (if available)
-                                try:
-                                    from skimage.metrics import structural_similarity as ssim
-                                    ssim_score = ssim(face_roi, student_img)
-                                    scores.append(max(0, ssim_score))
-                                except ImportError:
-                                    # Fallback to basic correlation
-                                    correlation = np.corrcoef(face_roi.flatten(), student_img.flatten())[0, 1]
-                                    scores.append(max(0, correlation) if not np.isnan(correlation) else 0)
-                                
-                                # Calculate average score
-                                avg_score = np.mean(scores)
-                                
-                                if avg_score > best_score and avg_score > 0.5:  # Lower threshold for better recognition
-                                    best_score = avg_score
-                                    best_match = student
-                                    print(f"Student {student.name} matched with score: {avg_score:.3f}")
-                                    
-                    except Exception as e:
-                        print(f"Error processing student photo {student.photo}: {e}")
-                        continue
-            
-            if best_match:
-                return best_match
-        
-        return None
-        
-    except Exception as e:
-        print(f"Error in face recognition: {e}")
-        return None
 
-def mark_attendance_for_student(student):
+def mark_attendance_for_student(student_data):
     """
-    Mark attendance for a recognized student
+    Mark attendance for a recognized student using their data dictionary.
     """
     try:
-        # Check if already marked today
         today = datetime.now().strftime('%d/%m/%Y')
         existing = Attendance.query.filter_by(
-            student_id=student.student_id, 
+            student_id=student_data['student_id'], 
             date=today
         ).first()
         
         if existing:
             return {
                 'status': 'already_marked',
-                'message': f'Attendance already marked for {student.name} today at {existing.time}'
+                'message': f"Attendance already marked for {student_data['name']} today at {existing.time}"
             }
         
-        # Mark attendance
         new_attendance = Attendance(
-            student_id=student.student_id,
-            roll=student.roll,
-            name=student.name,
-            department=student.department,
+            student_id=student_data['student_id'],
+            roll=student_data['roll'],
+            name=student_data['name'],
+            department=student_data['department'],
             time=datetime.now().strftime('%H:%M:%S'),
             date=today,
             status='Present'
         )
-        
         db.session.add(new_attendance)
         db.session.commit()
         
         return {
             'status': 'marked',
-            'message': f'Attendance marked for {student.name} at {new_attendance.time}',
+            'message': f"Attendance marked for {student_data['name']} at {new_attendance.time}",
             'time': new_attendance.time
         }
-        
     except Exception as e:
         db.session.rollback()
-        return {
-            'status': 'error',
-            'message': f'Error marking attendance: {str(e)}'
-        }
+        return {'status': 'error', 'message': f'Error marking attendance: {str(e)}'}
 
-@app.route('/api/mark_attendance', methods=['POST'])
-def mark_attendance():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
+@app.route('/api/retrain', methods=['POST'])
+def retrain_faces():
+    """
+    API endpoint to trigger reloading of known faces from the database.
+    """
+    if 'user_id' not in session or not session.get('is_admin'):
+        return jsonify({'error': 'Unauthorized'}), 403
     
-    try:
-        data = request.json
-        student_id = data.get('student_id')
-        roll = data.get('roll')
-        name = data.get('name')
-        department = data.get('department')
-        
-        # Check if already marked today
-        today = datetime.now().strftime('%d/%m/%Y')
-        existing = Attendance.query.filter_by(
-            student_id=student_id, 
-            date=today
-        ).first()
-        
-        if existing:
-            return jsonify({'message': 'Attendance already marked for today'})
-        
-        # Mark attendance
-        new_attendance = Attendance(
-            student_id=student_id,
-            roll=roll,
-            name=name,
-            department=department,
-            time=datetime.now().strftime('%H:%M:%S'),
-            date=today,
-            status='Present'
-        )
-        
-        db.session.add(new_attendance)
-        db.session.commit()
-        
-        return jsonify({'message': 'Attendance marked successfully'})
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    print("Retraining request received. Reloading faces...")
+    load_known_faces()
+    return jsonify({'message': 'Face data reloaded successfully!'})
 
-@app.route('/test_face_recognition')
-def test_face_recognition():
-    """Test route to verify face recognition system"""
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    
-    # Get some sample students for testing
-    students = Student.query.limit(5).all()
-    return render_template('test_face_recognition.html', students=students)
 
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
         
         # Create admin user if not exists
-        admin_user = User.query.filter_by(email='admin@admin.com').first()
-        if not admin_user:
+        if not User.query.filter_by(email='admin@admin.com').first():
             admin_user = User(
-                fname='Admin',
-                lname='User',
-                contact='1234567890',
-                email='admin@admin.com',
-                securityQ='Your Birth Place',
-                securityA='Admin',
-                password=generate_password_hash('admin123'),
+                fname='Admin', lname='User', contact='1234567890',
+                email='admin@admin.com', securityQ='Your Birth Place',
+                securityA='Admin', password=generate_password_hash('admin123'),
                 is_admin=True
             )
             db.session.add(admin_user)
             db.session.commit()
+        
+        # --- IMPORTANT: Load known faces on startup ---
+        load_known_faces()
     
     app.run(debug=True, host='0.0.0.0', port=5000)
