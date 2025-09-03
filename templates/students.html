@@ -97,7 +97,7 @@
         color: #d1d5db;
     }
     
-    /* Delete Modal Styling */
+    /* Modal Styling */
     .modal-content {
         background-color: #374151;
         border: 1px solid #4b5563;
@@ -161,13 +161,11 @@
 
 {% block content %}
 <div class="container py-5">
-    <!-- Page Header -->
     <div class="page-header">
         <h1><i class="fas fa-users me-3"></i>Student Management</h1>
         <p>View, search, and manage all registered students</p>
     </div>
 
-    <!-- Search and Actions Section -->
     <div class="glass-card search-section">
         <div class="row align-items-center">
             <div class="col-lg-6 mb-3 mb-lg-0">
@@ -188,7 +186,6 @@
         </div>
     </div>
     
-    <!-- Students List -->
     {% if students %}
     <div class="row" id="studentsContainer">
         {% for student in students %}
@@ -226,7 +223,6 @@
             </div>
         </div>
         
-        <!-- Student Detail Modal -->
         <div class="modal fade" id="studentModal{{ student.id }}" tabindex="-1">
             <div class="modal-dialog modal-lg modal-dialog-centered">
                 <div class="modal-content">
@@ -265,7 +261,6 @@
     </div>
     
     {% else %}
-    <!-- Empty State -->
     <div class="glass-card empty-state">
         <i class="fas fa-users"></i>
         <h4 class="text-white">No Students Found</h4>
@@ -277,7 +272,6 @@
     {% endif %}
 </div>
 
-<!-- Delete Confirmation Modal -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -309,7 +303,6 @@
     </div>
 </div>
 
-<!-- Hidden table for export functionality -->
 {% if students %}
 <table id="studentsTable" class="d-none">
     <thead>
@@ -360,6 +353,49 @@ function showDeleteConfirmation(button, studentName, studentId) {
     const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
     deleteModal.show();
 }
+
+// --- THIS IS THE MISSING FUNCTION TO ADD ---
+function exportToCSV(tableId, filename) {
+    const table = document.getElementById(tableId);
+    if (!table) {
+        console.error('Table not found!');
+        return;
+    }
+
+    let csv = [];
+    // Get headers
+    const headers = [];
+    table.querySelectorAll('thead th').forEach(header => {
+        headers.push(header.innerText);
+    });
+    csv.push(headers.join(','));
+
+    // Get rows
+    table.querySelectorAll('tbody tr').forEach(row => {
+        const rowData = [];
+        row.querySelectorAll('td').forEach(cell => {
+            // Escape commas and wrap in quotes if necessary
+            let cellText = cell.innerText.replace(/"/g, '""');
+            if (cellText.includes(',')) {
+                cellText = `"${cellText}"`;
+            }
+            rowData.push(cellText);
+        });
+        csv.push(rowData.join(','));
+    });
+
+    // Create a blob and trigger download
+    const blob = new Blob([csv.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+}
 </script>
 {% endblock %}
-

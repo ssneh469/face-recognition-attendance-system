@@ -4,229 +4,156 @@
 
 {% block extra_css %}
 <style>
-    /* Main body styling to match the dark theme */
-    body {
-        background-color: #111827;
-        background-image: linear-gradient(145deg, #1f2937 0%, #111827 100%);
-        color: #d1d5db;
-        font-family: 'Inter', sans-serif;
-    }
-
-    /* General card style using the "glassmorphism" effect */
-    .glass-card {
-        background-color: rgba(31, 41, 55, 0.5);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        border-radius: 1rem;
-        border: 1px solid rgba(75, 85, 99, 0.5);
-        padding: 1.5rem;
-        transition: all 0.3s ease;
-    }
+    body { background-color: #111827; background-image: linear-gradient(145deg, #1f2937 0%, #111827 100%); color: #d1d5db; font-family: 'Inter', sans-serif; }
+    .glass-card { background-color: rgba(31, 41, 55, 0.5); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 1rem; border: 1px solid rgba(75, 85, 99, 0.5); padding: 1.5rem; }
+    .page-header h1 { font-size: 2.5rem; color: #fff; font-weight: 700; }
+    .stat-card .icon { font-size: 2.5rem; color: #818cf8; }
+    .stat-card .number { font-size: 2rem; font-weight: bold; color: #fff; }
+    .form-control, .form-select { background-color: rgba(55, 65, 81, 0.6); border: 1px solid rgba(75, 85, 99, 0.7); color: #f3f4f6; border-radius: 0.5rem; }
+    .form-control:focus, .form-select:focus { background-color: rgba(75, 85, 99, 0.8); border-color: #818cf8; box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.25); color: #fff; }
     
-    /* Page Header */
-    .page-header {
-        text-align: center;
-        margin-bottom: 2rem;
-    }
-    .page-header h1 {
-        font-size: 2.5rem; color: #fff; font-weight: 700;
-    }
-    .page-header p {
-        font-size: 1.1rem; color: #9ca3af;
-    }
-    
-    /* Stat cards styling */
-    .stat-card {
-        padding: 1.5rem;
-        text-align: center;
-    }
-    .stat-card:hover {
-        transform: translateY(-4px);
-    }
-    .stat-card .icon {
-        font-size: 2.5rem; color: #818cf8; margin-bottom: 1rem;
-    }
-    .stat-card .number {
-        font-size: 2rem; font-weight: bold; color: #fff;
-    }
-    .stat-card .label {
-        color: #9ca3af; font-size: 0.9rem;
-    }
-
-    /* Filters section styling */
-    .form-control, .form-select {
-        background-color: rgba(55, 65, 81, 0.6);
-        border: 1px solid rgba(75, 85, 99, 0.7);
-        color: #f3f4f6;
-        border-radius: 0.5rem;
-    }
-    .form-control:focus, .form-select:focus {
-        background-color: rgba(75, 85, 99, 0.8);
-        border-color: #818cf8;
-        box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.25);
-        color: #fff;
-    }
-
-    /* Attendance Table Styling */
-    .table {
-        color: #d1d5db;
-    }
-    .table thead th {
-        color: #fff;
-        background-color: rgba(55, 65, 81, 0.6);
-        border-bottom: 1px solid rgba(75, 85, 99, 0.7);
-    }
-    .table tbody tr {
-        border-color: rgba(75, 85, 99, 0.7);
-    }
-    .table tbody tr:hover {
-        background-color: rgba(55, 65, 81, 0.4);
-    }
-    
-    /* Status Badges */
-    .status-badge {
-        padding: 0.3rem 0.8rem;
-        border-radius: 999px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        text-transform: uppercase;
-    }
+    /* Status Badge Styling (already good) */
+    .status-badge { padding: 0.3rem 0.8rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
     .status-present { background-color: rgba(34, 197, 94, 0.2); color: #22c55e; }
     .status-absent { background-color: rgba(239, 68, 68, 0.2); color: #ef4444; }
-    .status-late { background-color: rgba(245, 158, 11, 0.2); color: #f59e0b; }
-
-    /* Empty State */
+    
+    /* Empty State (already good) */
     .empty-state { text-align: center; padding: 3rem; }
-    .empty-state i { font-size: 4rem; color: rgba(75, 85, 99, 0.7); margin-bottom: 1rem; }
 
+    /* --- NEW CSS FOR THE CARD LAYOUT --- */
+    .student-photo {
+        width: 60px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 50%;
+        border: 2px solid #4f46e5;
+    }
+    .student-info h5 {
+        color: #fff;
+        margin: 0;
+        font-size: 1.1rem;
+    }
+    .student-info small {
+        color: #9ca3af;
+        font-size: 0.85rem;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container py-5">
-    <!-- Page Header -->
-    <div class="page-header">
+    <div class="page-header text-center mb-4">
         <h1><i class="fas fa-calendar-check me-3"></i>Attendance Management</h1>
-        <p>Track and manage student attendance records</p>
     </div>
     
-    <!-- Statistics Section -->
-    <div class="row stats-section mb-4">
-        <div class="col-md-3 mb-3"><div class="stat-card glass-card h-100"><div class="icon"><i class="fas fa-calendar-alt"></i></div><div class="number">{{ attendance_records|length }}</div><div class="label">Total Records</div></div></div>
-        <div class="col-md-3 mb-3"><div class="stat-card glass-card h-100"><div class="icon"><i class="fas fa-user-check"></i></div><div class="number">{{ attendance_records|selectattr('status', 'equalto', 'Present')|list|length }}</div><div class="label">Present Today</div></div></div>
-        <div class="col-md-3 mb-3"><div class="stat-card glass-card h-100"><div class="icon"><i class="fas fa-user-times"></i></div><div class="number">{{ attendance_records|selectattr('status', 'equalto', 'Absent')|list|length }}</div><div class="label">Absent Today</div></div></div>
-        <div class="col-md-3 mb-3"><div class="stat-card glass-card h-100"><div class="icon"><i class="fas fa-clock"></i></div><div class="number">{{ attendance_records|selectattr('status', 'equalto', 'Late')|list|length }}</div><div class="label">Late Today</div></div></div>
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3"><div class="stat-card glass-card h-100 text-center"><div class="icon mb-2"><i class="fas fa-users"></i></div><div class="number">{{ student_attendance_data|length }}</div><div class="label">Total Students</div></div></div>
+        <div class="col-md-3 mb-3"><div class="stat-card glass-card h-100 text-center"><div class="icon mb-2"><i class="fas fa-user-check"></i></div><div class="number">{{ student_attendance_data|selectattr('status', 'equalto', 'Present')|list|length }}</div><div class="label">Present</div></div></div>
+        <div class="col-md-3 mb-3"><div class="stat-card glass-card h-100 text-center"><div class="icon mb-2"><i class="fas fa-user-times"></i></div><div class="number">{{ student_attendance_data|selectattr('status', 'equalto', 'Absent')|list|length }}</div><div class="label">Absent</div></div></div>
+        <div class="col-md-3 mb-3"><div class="stat-card glass-card h-100 text-center"><div class="icon mb-2"><i class="fas fa-calendar"></i></div><div class="number">{{ selected_date }}</div><div class="label">Selected Date</div></div></div>
     </div>
     
-    <!-- Filters Section -->
     <div class="glass-card mb-4">
-        <h5 class="mb-3 text-white"><i class="fas fa-filter me-2"></i>Filters & Search</h5>
+        <h5 class="mb-3 text-white"><i class="fas fa-filter me-2"></i>Filters & Actions</h5>
         <div class="row g-2 align-items-center">
-            <div class="col-lg-4"><input type="text" class="form-control" id="attendanceSearch" placeholder="Search students..."></div>
-            <div class="col-lg-2 col-md-4"><select class="form-select" id="statusFilter"><option value="">All Status</option><option>Present</option><option>Absent</option><option>Late</option></select></div>
-            <div class="col-lg-3 col-md-4"><select class="form-select" id="departmentFilter"><option value="">All Departments</option><option>Computer Science</option><option>Information Technology</option></select></div>
-            <div class="col-lg-3 col-md-4"><input type="date" class="form-control" id="dateFilter"></div>
+            <div class="col-lg-3"><input type="text" class="form-control" id="attendanceSearch" placeholder="Search by name, ID..."></div>
+            <div class="col-lg-2 col-md-3"><select class="form-select" id="statusFilter"><option value="">All Status</option><option value="Present">Present</option><option value="Absent">Absent</option></select></div>
+            <div class="col-lg-2 col-md-3"><select class="form-select" id="departmentFilter"><option value="">All Departments</option><option value="Computer Science">Computer Science</option><option value="Information Technology">Information Technology</option></select></div>
+            <div class="col-lg-2 col-md-3"><select class="form-select" id="dateFilter" onchange="changeDate()">{% for date in available_dates %}<option value="{{ date }}" {% if date == selected_date %}selected{% endif %}>{{ date }}</option>{% endfor %}</select></div>
+            <div class="col-lg-3 col-md-3"><a href="{{ url_for('export_csv', date=selected_date) }}" class="btn btn-primary w-100"><i class="fas fa-download me-2"></i>Export CSV</a></div>
         </div>
     </div>
 
-    <!-- Attendance Table -->
-    <div class="glass-card">
-        <h5 class="mb-3 text-white"><i class="fas fa-list me-2"></i>Attendance Records</h5>
-        
-        {% if attendance_records %}
-        <div class="table-responsive">
-            <table class="table table-borderless table-hover" id="attendanceTable">
-                <thead>
-                    <tr>
-                        <th>Student ID</th><th>Name</th><th>Date</th><th>Time</th><th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for record in attendance_records %}
-                    <tr>
-                        <td>{{ record.student_id }}</td>
-                        <td>{{ record.name }}</td>
-                        <td>{{ record.date }}</td>
-                        <td>{{ record.time }}</td>
-                        <td><span class="status-badge status-{{ record.status.lower() }}">{{ record.status }}</span></td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    <h5 class="mb-3 text-white"><i class="fas fa-list me-2"></i>Student List for {{ selected_date }}</h5>
+    <div class="row" id="attendanceContainer">
+        {% for data in student_attendance_data %}
+        <div class="col-lg-6 mb-4 student-item">
+            <div class="glass-card h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <img src="{{ url_for('static', filename='uploads/' + data.student.photo) }}" alt="{{ data.student.name }}" class="student-photo me-3">
+                        <div class="student-info">
+                            <h5>{{ data.student.name }}</h5>
+                            <small>ID: {{ data.student.student_id }} | {{ data.student.department }}</small>
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <span class="status-badge status-{{ data.status.lower() }}">{{ data.status }}</span>
+                        <small class="d-block text-muted mt-1">{{ data.time }}</small>
+                        <div class="btn-group mt-2" role="group">
+                            <form method="POST" action="{{ url_for('mark_attendance') }}" class="d-inline">
+                                <input type="hidden" name="student_id" value="{{ data.student.student_id }}">
+                                <input type="hidden" name="date" value="{{ selected_date }}">
+                                <input type="hidden" name="status" value="Present">
+                                <button type="submit" class="btn btn-sm btn-success" {% if data.status == 'Present' %}disabled{% endif %}>
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ url_for('mark_attendance') }}" class="d-inline">
+                                <input type="hidden" name="student_id" value="{{ data.student.student_id }}">
+                                <input type="hidden" name="date" value="{{ selected_date }}">
+                                <input type="hidden" name="status" value="Absent">
+                                <button type="submit" class="btn btn-sm btn-danger" {% if data.status == 'Absent' %}disabled{% endif %}>
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         {% else %}
-        <div class="empty-state">
-            <i class="fas fa-calendar-times"></i>
-            <h4 class="text-white">No Attendance Records Found</h4>
-            <p class="text-secondary">Try adjusting your filters or mark attendance.</p>
+        <div class="col-12">
+            <div class="glass-card text-center py-5">
+                <h4>No Students Found</h4>
+                <p>Add students to the system to see them here.</p>
+            </div>
         </div>
-        {% endif %}
-    </div>
-</div>
-
-<!-- Hidden table for export functionality (remains unchanged) -->
-{% if attendance_records %}
-<table id="attendanceExportTable" class="d-none">
-    <thead>
-        <tr><th>Student ID</th><th>Name</th><th>Roll</th><th>Department</th><th>Date</th><th>Time</th><th>Status</th></tr>
-    </thead>
-    <tbody>
-        {% for record in attendance_records %}
-        <tr><td>{{ record.student_id }}</td><td>{{ record.name }}</td><td>{{ record.roll }}</td><td>{{ record.department }}</td><td>{{ record.date }}</td><td>{{ record.time }}</td><td>{{ record.status }}</td></tr>
         {% endfor %}
-    </tbody>
-</table>
-{% endif %}
+    </div>
+    </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+// Reloads the page with the selected date in the URL
+function changeDate() {
+    const selectedDate = document.getElementById('dateFilter').value;
+    if (selectedDate) {
+        window.location.href = `{{ url_for('attendance') }}?date=${selectedDate}`;
+    }
+}
+
+// Filters the cards locally without reloading
 document.addEventListener('DOMContentLoaded', function() {
-    // This script's logic remains largely the same but targets the new filter setup
     const searchInput = document.getElementById('attendanceSearch');
     const statusFilter = document.getElementById('statusFilter');
     const departmentFilter = document.getElementById('departmentFilter');
-    const dateFilter = document.getElementById('dateFilter');
-    
-    // Set today's date as default
-    const today = new Date().toISOString().split('T')[0];
-    dateFilter.value = today;
 
-    const applyFilters = () => {
+    const applyLocalFilters = () => {
         const searchTerm = searchInput.value.toLowerCase();
         const statusValue = statusFilter.value.toLowerCase();
         const departmentValue = departmentFilter.value.toLowerCase();
-        const dateValue = dateFilter.value;
         
-        const rows = document.querySelectorAll('#attendanceTable tbody tr');
-        rows.forEach(row => {
-            const studentId = row.cells[0].textContent.toLowerCase();
-            const name = row.cells[1].textContent.toLowerCase();
-            const date = row.cells[2].textContent;
-            const status = row.cells[4].textContent.trim().toLowerCase();
+        const studentItems = document.querySelectorAll('#attendanceContainer .student-item');
+        
+        studentItems.forEach(item => {
+            const name = item.querySelector('.student-info h5').textContent.toLowerCase();
+            const details = item.querySelector('.student-info small').textContent.toLowerCase();
+            const status = item.querySelector('.status-badge').textContent.trim().toLowerCase();
             
-            // This is a simplified department check for the example
-            const department = "computer science"; // Assume a department for filtering
+            const matchesSearch = searchTerm === '' || name.includes(searchTerm) || details.includes(searchTerm);
+            const matchesStatus = statusValue === '' || status === statusValue;
+            const matchesDept = departmentValue === '' || details.includes(departmentValue);
 
-            const matchesSearch = studentId.includes(searchTerm) || name.includes(searchTerm);
-            const matchesStatus = statusValue === '' || status.includes(statusValue);
-            const matchesDept = departmentValue === '' || department.includes(departmentValue);
-            const matchesDate = dateValue === '' || date === dateValue;
-
-            row.style.display = matchesSearch && matchesStatus && matchesDept && matchesDate ? '' : 'none';
+            item.style.display = (matchesSearch && matchesStatus && matchesDept) ? '' : 'none';
         });
     };
 
-    [searchInput, statusFilter, departmentFilter, dateFilter].forEach(el => {
-        el.addEventListener('input', applyFilters);
-        el.addEventListener('change', applyFilters);
+    [searchInput, statusFilter, departmentFilter].forEach(el => {
+        el.addEventListener('input', applyLocalFilters);
+        el.addEventListener('change', applyLocalFilters);
     });
-
-    // Initial filter on load
-    applyFilters();
 });
 </script>
 {% endblock %}
-
-
-
