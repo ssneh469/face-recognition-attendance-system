@@ -1,211 +1,85 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - Face Recognition System{% endblock %}
-
-{% block extra_css %}
-<style>
-    /* Main body styling to match the dark theme */
-    body {
-        background-color: #111827; /* Dark blue-gray background */
-        background-image: linear-gradient(145deg, #1f2937 0%, #111827 100%);
-        color: #d1d5db; /* Light gray text for readability */
-        font-family: 'Inter', sans-serif;
-    }
-
-    /* A general card style using the "glassmorphism" effect */
-    .glass-card {
-        background-color: rgba(31, 41, 55, 0.5); /* Semi-transparent dark card */
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px); /* For Safari */
-        border-radius: 1rem;
-        border: 1px solid rgba(75, 85, 99, 0.5);
-        padding: 1.5rem;
-        transition: all 0.3s ease;
-    }
-
-    .glass-card:hover {
-        border-color: rgba(129, 140, 248, 0.4); /* Subtle indigo glow on hover */
-        transform: translateY(-4px);
-    }
-
-    /* Welcome Header */
-    .welcome-header h1 {
-        font-size: 2.25rem;
-        color: #ffffff;
-        font-weight: 700;
-    }
-
-    .welcome-header p {
-        font-size: 1.1rem;
-        color: #9ca3af;
-    }
-    
-    /* Stats Cards for key metrics */
-    .stats-card {
-        padding: 1.5rem;
-        text-align: center;
-    }
-
-    .stats-card .icon {
-        font-size: 2rem;
-        color: #818cf8; /* Light indigo for icons */
-        margin-bottom: 0.75rem;
-    }
-    
-    .stats-card .number {
-        font-size: 2rem;
-        font-weight: bold;
-        color: #fff;
-    }
-    
-    .stats-card .label {
-        font-size: 0.9rem;
-        color: #9ca3af; /* Lighter text for labels */
-    }
-
-    /* Quick Actions section */
-    .action-card {
-        padding: 1.5rem;
-        text-align: center;
-        border-radius: 0.75rem;
-        background-color: rgba(55, 65, 81, 0.6);
-    }
-
-    .action-card:hover {
-        background-color: rgba(75, 85, 99, 0.8);
-        border-color: rgba(129, 140, 248, 0.6);
-    }
-    
-    .action-card .icon {
-        font-size: 2rem;
-        color: #a5b4fc; /* Lighter indigo */
-        margin-bottom: 1rem;
-    }
-    
-    .action-card h5 {
-        color: #f3f4f6; /* Off-white for titles */
-        margin-bottom: 0.25rem;
-    }
-    
-    /* Sidebar info cards */
-    .sidebar-card .card-header {
-        color: white;
-        font-weight: 600;
-        padding-bottom: 0.75rem;
-        border-bottom: 1px solid rgba(75, 85, 99, 0.7);
-        margin-bottom: 1rem;
-    }
-    
-    .sidebar-card ul li {
-        display: flex;
-        align-items: center;
-        margin-bottom: 0.75rem;
-        font-size: 0.95rem;
-    }
-
-    .sidebar-card ul li:last-child {
-        margin-bottom: 0;
-    }
-    
-    .sidebar-card ul .icon {
-        margin-right: 0.75rem;
-        width: 20px;
-        text-align: center;
-    }
-</style>
-{% endblock %}
+{% block title %}Dashboard - Face Recognition Attendance{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="row">
-        <div class="col-lg-8">
-            <div class="welcome-header mb-4">
-                <h1>Welcome, {{ session.user_name }}!</h1>
-                <p>This is your central hub for the Face Recognition System.</p>
-            </div>
-            
-            <div class="row mb-4">
-                <div class="col-md-4 mb-4">
-                    <div class="glass-card stats-card h-100">
-                        <div class="icon"><i class="fas fa-users"></i></div>
-                        <div class="number">{{ total_students }}</div>
-                        <div class="label">Total Students</div>
-                    </div>
-                </div>
-                <div class="col-md-4 mb-4">
-                    <div class="glass-card stats-card h-100">
-                        <div class="icon"><i class="fas fa-calendar-check"></i></div>
-                        <div class="number">{{ total_attendance }}</div>
-                        <div class="label">Total Attendance</div>
-                    </div>
-                </div>
-                <div class="col-md-4 mb-4">
-                    <div class="glass-card stats-card h-100">
-                        <div class="icon"><i class="fas fa-clock"></i></div>
-                        <div class="number">{{ today_attendance }}</div>
-                        <div class="label">Today's Attendance</div>
-                    </div>
-                </div>
-            </div>
+<div style="padding: 2rem 0;">
+    <div style="text-align: center; margin-bottom: 3rem;">
+        <h1 style="font-size: 3rem; margin-bottom: 1rem; background: linear-gradient(45deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+            <i class="fas fa-tachometer-alt"></i> Dashboard
+        </h1>
+        <p style="color: rgba(255, 255, 255, 0.7); font-size: 1.2rem;">Welcome back, {{ session.user_name }}!</p>
+    </div>
 
-            <div class="glass-card">
-                 <h4 class="mb-4 text-white">Quick Actions</h4>
-                 <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <a href="{{ url_for('add_student') }}" class="text-decoration-none">
-                            <div class="glass-card action-card h-100">
-                                <div class="icon"><i class="fas fa-user-plus"></i></div>
-                                <h5>Add Student</h5>
-                            </div>
-                        </a>
-                    </div>
-                     <div class="col-md-6 mb-3">
-                        <a href="{{ url_for('face_recognition_page') }}" class="text-decoration-none">
-                            <div class="glass-card action-card h-100">
-                                <div class="icon"><i class="fas fa-camera"></i></div>
-                                <h5>Face Recognition</h5>
-                            </div>
-                        </a>
-                    </div>
-                    <div class="col-md-6 mb-3 mb-md-0">
-                        <a href="{{ url_for('students') }}" class="text-decoration-none">
-                            <div class="glass-card action-card h-100">
-                                <div class="icon"><i class="fas fa-list"></i></div>
-                                <h5>View Students</h5>
-                            </div>
-                        </a>
-                    </div>
-                    <div class="col-md-6">
-                        <a href="{{ url_for('attendance') }}" class="text-decoration-none">
-                            <div class="glass-card action-card h-100">
-                                <div class="icon"><i class="fas fa-chart-bar"></i></div>
-                                <h5>Attendance Report</h5>
-                            </div>
-                        </a>
-                    </div>
-                 </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-bottom: 3rem;">
+        <!-- Total Students Card -->
+        <div class="card" style="text-align: center; background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);">
+            <div style="font-size: 3rem; margin-bottom: 1rem; color: #667eea;">
+                <i class="fas fa-users"></i>
             </div>
+            <h3 style="font-size: 2.5rem; margin-bottom: 0.5rem; color: #ffffff;">{{ total_students }}</h3>
+            <p style="color: rgba(255, 255, 255, 0.8); font-size: 1.1rem;">Total Students</p>
         </div>
 
-        <div class="col-lg-4 mt-4 mt-lg-0">
-            <div class="glass-card sidebar-card mb-4">
-                <div class="card-header"><i class="fas fa-info-circle me-2"></i>System Information</div>
-                <ul class="list-unstyled">
-                    <li><i class="fas fa-check-circle text-success me-2 icon"></i>System is running</li>
-                    <li><i class="fas fa-database text-info me-2 icon"></i>Database connected</li>
-                    <li><i class="fas fa-camera text-warning me-2 icon"></i>Camera access ready</li>
-                    <li><i class="fas fa-shield-alt text-primary me-2 icon"></i>Security enabled</li>
-                </ul>
+        <!-- Quick Actions Card -->
+        <div class="card" style="text-align: center; background: linear-gradient(135deg, rgba(46, 204, 113, 0.2) 0%, rgba(39, 174, 96, 0.2) 100%);">
+            <div style="font-size: 3rem; margin-bottom: 1rem; color: #2ecc71;">
+                <i class="fas fa-camera"></i>
             </div>
-             <div class="glass-card sidebar-card">
-                <div class="card-header"><i class="fas fa-lightbulb me-2"></i>Tips for Best Results</div>
-                <ul class="list-unstyled">
-                    <li><i class="fas fa-arrow-right text-success me-2 icon"></i>Ensure good lighting</li>
-                    <li><i class="fas fa-arrow-right text-success me-2 icon"></i>Keep camera at eye level</li>
-                    <li><i class="fas fa-arrow-right text-success me-2 icon"></i>Regularly back up data</li>
-                </ul>
-            </div>
+            <h3 style="margin-bottom: 1rem; color: #ffffff;">Face Recognition</h3>
+            <a href="{{ url_for('face_recognition_page') }}" class="btn btn-primary">
+                <i class="fas fa-play"></i> Start Recognition
+            </a>
         </div>
+
+        <!-- Attendance Card -->
+        <div class="card" style="text-align: center; background: linear-gradient(135deg, rgba(255, 107, 107, 0.2) 0%, rgba(238, 90, 36, 0.2) 100%);">
+            <div style="font-size: 3rem; margin-bottom: 1rem; color: #ff6b6b;">
+                <i class="fas fa-clipboard-list"></i>
+            </div>
+            <h3 style="margin-bottom: 1rem; color: #ffffff;">Attendance</h3>
+            <a href="{{ url_for('attendance') }}" class="btn btn-primary">
+                <i class="fas fa-eye"></i> View Records
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Navigation -->
+    <div class="card">
+        <h2 style="margin-bottom: 2rem; text-align: center; color: #ffffff;">
+            <i class="fas fa-rocket"></i> Quick Actions
+        </h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+            <a href="{{ url_for('add_student') }}" class="btn btn-secondary" style="padding: 1.5rem; text-align: center; display: block;">
+                <i class="fas fa-user-plus" style="font-size: 2rem; display: block; margin-bottom: 0.5rem;"></i>
+                Add New Student
+            </a>
+            <a href="{{ url_for('students') }}" class="btn btn-secondary" style="padding: 1.5rem; text-align: center; display: block;">
+                <i class="fas fa-list" style="font-size: 2rem; display: block; margin-bottom: 0.5rem;"></i>
+                Manage Students
+            </a>
+            <a href="{{ url_for('face_recognition_page') }}" class="btn btn-secondary" style="padding: 1.5rem; text-align: center; display: block;">
+                <i class="fas fa-camera" style="font-size: 2rem; display: block; margin-bottom: 0.5rem;"></i>
+                Face Recognition
+            </a>
+            <a href="{{ url_for('attendance') }}" class="btn btn-secondary" style="padding: 1.5rem; text-align: center; display: block;">
+                <i class="fas fa-download" style="font-size: 2rem; display: block; margin-bottom: 0.5rem;"></i>
+                Export Reports
+            </a>
+        </div>
+    </div>
+
+    <!-- System Info -->
+    <div class="card" style="text-align: center; background: rgba(255, 255, 255, 0.05);">
+        <h3 style="margin-bottom: 1rem; color: #ffffff;">
+            <i class="fas fa-info-circle"></i> System Information
+        </h3>
+        <p style="color: rgba(255, 255, 255, 0.7); margin-bottom: 0.5rem;">
+            Face Recognition Attendance System v1.0
+        </p>
+        <p style="color: rgba(255, 255, 255, 0.6); font-size: 0.9rem;">
+            Powered by AI • Secure • Reliable
+        </p>
     </div>
 </div>
 {% endblock %}

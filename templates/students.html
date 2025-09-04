@@ -1,401 +1,154 @@
 {% extends "base.html" %}
 
-{% block title %}Students - Face Recognition System{% endblock %}
+{% block title %}Students - Face Recognition Attendance{% endblock %}
 
 {% block extra_css %}
 <style>
-    /* Main body styling to match the dark theme */
-    body {
-        background-color: #111827; /* Dark blue-gray background */
-        background-image: linear-gradient(145deg, #1f2937 0%, #111827 100%);
-        color: #d1d5db; /* Light gray text for readability */
-        font-family: 'Inter', sans-serif;
-    }
-
-    /* General card style using the "glassmorphism" effect */
-    .glass-card {
-        background-color: rgba(31, 41, 55, 0.5); /* Semi-transparent dark card */
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px); /* For Safari */
-        border-radius: 1rem;
-        border: 1px solid rgba(75, 85, 99, 0.5);
-        padding: 1.5rem;
-        transition: all 0.3s ease;
-    }
-
-    /* Page Header */
-    .page-header {
-        text-align: center;
-        margin-bottom: 2rem;
-    }
-    
-    .page-header h1 {
-        font-size: 2.5rem;
-        color: #fff;
-        font-weight: 700;
-    }
-    
-    .page-header p {
-        font-size: 1.1rem;
-        color: #9ca3af;
-    }
-    
-    /* Search and filter section */
-    .search-section {
-        padding: 1rem 1.5rem;
+    .search-container {
+        position: relative;
         margin-bottom: 2rem;
     }
 
     .search-input {
-        background-color: rgba(75, 85, 99, 0.7); /* Lighter background for visibility */
-        border: 1px solid rgba(107, 114, 128, 0.7);
-        color: #f3f4f6;
-        border-radius: 0.75rem;
-        padding: 0.75rem 1rem 0.75rem 2.5rem; /* Added left padding for icon */
         width: 100%;
-        transition: all 0.2s ease-in-out;
+        padding: 12px 16px 12px 50px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 15px;
+        background: rgba(255, 255, 255, 0.1);
+        color: #ffffff;
+        font-size: 1rem;
     }
-    .search-input:focus {
-        background-color: rgba(55, 65, 81, 0.9);
-        border-color: #818cf8; /* Brighter indigo on focus */
-        box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.25); /* Added glow effect */
-        color: #fff;
+
+    .search-icon {
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: rgba(255, 255, 255, 0.6);
     }
-    
-    /* Student Card Styling */
+
     .student-card {
-        background-color: rgba(55, 65, 81, 0.6);
-        border-radius: 1rem;
-        border: 1px solid rgba(75, 85, 99, 0.5);
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 1.5rem;
+        margin-bottom: 1rem;
         transition: all 0.3s ease;
-        overflow: hidden;
     }
+
     .student-card:hover {
         transform: translateY(-5px);
-        border-color: rgba(129, 140, 248, 0.4);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+        background: rgba(255, 255, 255, 0.15);
     }
-    
+
     .student-photo {
         width: 80px;
         height: 80px;
-        object-fit: cover;
         border-radius: 50%;
-        border: 3px solid #4f46e5;
-    }
-    
-    .student-info h5 {
-        color: #fff;
-        margin-bottom: 0.25rem;
-    }
-    
-    .student-details {
-        color: #9ca3af;
-        font-size: 0.85rem;
-    }
-    .student-details strong {
-        color: #d1d5db;
-    }
-    
-    /* Modal Styling */
-    .modal-content {
-        background-color: #374151;
-        border: 1px solid #4b5563;
-        color: #d1d5db;
-    }
-    
-    .modal-header.bg-danger {
-        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
-    }
-    
-    .alert-warning {
-        background-color: rgba(245, 158, 11, 0.1);
-        border-color: rgba(245, 158, 11, 0.3);
-        color: #fbbf24;
-    }
-    
-    /* Action Buttons */
-    .btn-action {
-        background: transparent;
-        border: 1px solid #4b5563;
-        color: #9ca3af;
-        padding: 0.4rem 0.8rem;
-        border-radius: 0.5rem;
-        font-size: 0.8rem;
-        transition: all 0.2s ease;
-    }
-    .btn-action:hover {
-        background: #4b5563;
-        color: #fff;
-    }
-    
-    /* Modal Styling */
-    .modal-content {
-        background-color: #1f2937;
-        border: 1px solid rgba(75, 85, 99, 0.7);
-        color: #d1d5db;
-        border-radius: 1rem;
-    }
-    .modal-header {
-        border-bottom: 1px solid rgba(75, 85, 99, 0.7);
-    }
-     .modal-header .btn-close {
-        filter: invert(1);
-    }
-    .modal-footer {
-        border-top: 1px solid rgba(75, 85, 99, 0.7);
+        object-fit: cover;
+        border: 3px solid rgba(255, 255, 255, 0.3);
     }
 
-    /* Empty State */
-    .empty-state {
-        text-align: center;
-        padding: 3rem;
+    .btn-sm {
+        padding: 8px 16px;
+        font-size: 0.9rem;
+        margin: 0 4px;
     }
-    .empty-state i {
-        font-size: 4rem;
-        color: rgba(75, 85, 99, 0.7);
-        margin-bottom: 1rem;
-    }
+        /* Ensure dropdown text is visible */
+        select, option {
+            color: #222 !important;
+            background: #fff !important;
+        }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="page-header">
-        <h1><i class="fas fa-users me-3"></i>Student Management</h1>
-        <p>View, search, and manage all registered students</p>
+<div style="padding: 2rem 0;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+        <h1 style="font-size: 2.5rem; background: linear-gradient(45deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+            <i class="fas fa-users"></i> Students Management
+        </h1>
+        <a href="{{ url_for('add_student') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add New Student
+        </a>
     </div>
 
-    <div class="glass-card search-section">
-        <div class="row align-items-center">
-            <div class="col-lg-6 mb-3 mb-lg-0">
-                <div class="position-relative">
-                    <i class="fas fa-search position-absolute text-secondary" style="top: 50%; left: 1rem; transform: translateY(-50%); z-index: 10;"></i>
-                    <input type="text" class="form-control search-input" 
-                           id="studentSearch" placeholder="Search by name, ID, or department...">
-                </div>
-            </div>
-            <div class="col-lg-6 text-lg-end">
-                <a href="{{ url_for('add_student') }}" class="btn btn-primary">
-                    <i class="fas fa-user-plus me-2"></i>Add New Student
-                </a>
-                <button class="btn btn-success" onclick="exportToCSV('studentsTable', 'students.csv')">
-                    <i class="fas fa-download me-2"></i>Export CSV
-                </button>
-            </div>
-        </div>
+    <!-- Search Bar -->
+    <div class="search-container">
+        <i class="fas fa-search search-icon"></i>
+        <input type="text" id="searchInput" class="search-input" placeholder="Search students by name, ID, department...">
     </div>
-    
-    {% if students %}
-    <div class="row" id="studentsContainer">
-        {% for student in students %}
-        <div class="col-lg-6 col-xl-4 mb-4 student-item">
-            <div class="student-card h-100">
-                <div class="card-body">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="me-3">
-                             <img src="{{ url_for('static', filename='uploads/' + student.photo) if student.photo else 'https://placehold.co/100x100/374151/9ca3af?text=N/A' }}" 
-                                 alt="{{ student.name }}" class="student-photo">
-                        </div>
-                        <div class="student-info">
-                            <h5 class="mb-1">{{ student.name }}</h5>
-                            <div class="student-details">
-                                <strong>ID:</strong> {{ student.student_id }}
-                            </div>
+
+    <!-- Students Grid -->
+    <div id="studentsContainer">
+        {% if students %}
+            {% for student in students %}
+            <div class="student-card" data-student-info="{{ student.name|lower }} {{ student.student_id|lower }} {{ student.department|lower }} {{ student.roll|lower }}">
+                <div style="display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;">
+                    <img src="{{ url_for('static', filename='uploads/' + student.photo) }}" 
+                         alt="{{ student.name }}" 
+                         class="student-photo"
+                         onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iNDAiIGN5PSI0MCIgcj0iNDAiIGZpbGw9IiM2NjdlZWEiLz4KPHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4PSIyMCIgeT0iMjAiPgo8cGF0aCBkPSJNMTIgMTJDMTQuNzYxNCAxMiAxNyA5Ljc2MTQyIDE3IDdDMTcgNC4yMzg1OCAxNC43NjE0IDIgMTIgMkM5LjIzODU4IDIgNyA0LjIzODU4IDcgN0M3IDkuNzYxNDIgOS4yMzg1OCAxMiAxMiAxMloiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xMiAxNEM4LjEzNDAxIDE0IDUgMTcuMTM0IDUgMjFIMTlDMTkgMTcuMTM0IDE1Ljg2NiAxNCAxMiAxNFoiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo8L3N2Zz4K'">
+                    
+                    <div style="flex: 1; min-width: 200px;">
+                        <h3 style="margin-bottom: 0.5rem; color: #ffffff; font-size: 1.3rem;">{{ student.name }}</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.5rem; color: rgba(255, 255, 255, 0.8);">
+                            <p><i class="fas fa-id-card"></i> ID: {{ student.student_id }}</p>
+                            <p><i class="fas fa-hashtag"></i> Roll: {{ student.roll }}</p>
+                            <p><i class="fas fa-building"></i> {{ student.department }}</p>
+                            <p><i class="fas fa-graduation-cap"></i> {{ student.course }}</p>
+                            <p><i class="fas fa-calendar"></i> Year {{ student.year }}</p>
+                            <p><i class="fas fa-envelope"></i> {{ student.email }}</p>
                         </div>
                     </div>
                     
-                    <div class="student-actions d-flex justify-content-end gap-2">
-                        <button class="btn btn-action" 
-                                data-bs-toggle="modal" 
-                                data-bs-target="#studentModal{{ student.id }}">
-                            <i class="fas fa-eye"></i> View
-                        </button>
-                        <button class="btn btn-action">
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem; min-width: 120px;">
+                        <a href="{{ url_for('edit_student', student_id=student.id) }}" class="btn btn-secondary btn-sm">
                             <i class="fas fa-edit"></i> Edit
-                        </button>
-                        <button class="btn btn-action" 
-                                onclick="showDeleteConfirmation(this, '{{ student.name }}', {{ student.id }})">
-                            <i class="fas fa-trash"></i> Delete
-                        </button>
+                        </a>
+                        <form method="POST" action="{{ url_for('delete_student', student_id=student.id) }}" 
+                              onsubmit="return confirm('Are you sure you want to delete {{ student.name }}?')" style="margin: 0;">
+                            <button type="submit" class="btn btn-danger btn-sm" style="width: 100%;">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
-        </div>
-        
-        <div class="modal fade" id="studentModal{{ student.id }}" tabindex="-1">
-            <div class="modal-dialog modal-lg modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title text-white">
-                            <i class="fas fa-user-circle me-2"></i>{{ student.name }}'s Details
-                        </h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="row">
-                            <div class="col-md-4 text-center mb-3 mb-md-0">
-                                <img src="{{ url_for('static', filename='uploads/' + student.photo) if student.photo else 'https://placehold.co/200x200/374151/9ca3af?text=N/A' }}" 
-                                     alt="{{ student.name }}" class="img-fluid rounded-circle" style="max-width: 150px;">
-                            </div>
-                            <div class="col-md-8">
-                                <table class="table table-dark table-borderless">
-                                    <tr><td><strong>ID:</strong></td><td>{{ student.student_id }}</td></tr>
-                                    <tr><td><strong>Name:</strong></td><td>{{ student.name }}</td></tr>
-                                    <tr><td><strong>Department:</strong></td><td>{{ student.department }}</td></tr>
-                                    <tr><td><strong>Year:</strong></td><td>{{ student.year }}</td></tr>
-                                    <tr><td><strong>Email:</strong></td><td>{{ student.email }}</td></tr>
-                                    <tr><td><strong>Phone:</strong></td><td>{{ student.phone }}</td></tr>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <button type="button" class="btn btn-primary"><i class="fas fa-edit me-2"></i>Edit Details</button>
-                    </div>
+            {% endfor %}
+        {% else %}
+            <div class="card" style="text-align: center; padding: 3rem;">
+                <div style="font-size: 4rem; margin-bottom: 1rem; color: rgba(255, 255, 255, 0.3);">
+                    <i class="fas fa-user-slash"></i>
                 </div>
+                <h3 style="margin-bottom: 1rem; color: rgba(255, 255, 255, 0.7);">No Students Found</h3>
+                <p style="color: rgba(255, 255, 255, 0.5); margin-bottom: 2rem;">Get started by adding your first student to the system.</p>
+                <a href="{{ url_for('add_student') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Add First Student
+                </a>
             </div>
-        </div>
-        {% endfor %}
-    </div>
-    
-    {% else %}
-    <div class="glass-card empty-state">
-        <i class="fas fa-users"></i>
-        <h4 class="text-white">No Students Found</h4>
-        <p class="text-slate-400">There are no students registered in the system yet.</p>
-        <a href="{{ url_for('add_student') }}" class="btn btn-primary mt-3">
-            <i class="fas fa-user-plus me-2"></i>Add First Student
-        </a>
-    </div>
-    {% endif %}
-</div>
-
-<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title" id="deleteModalLabel">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    Confirm Deletion
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p class="mb-3">Are you sure you want to delete <strong id="studentNameToDelete"></strong>?</p>
-                <div class="alert alert-warning">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    <strong>Warning:</strong> This action cannot be undone. The student's photo and all attendance records will be permanently deleted.
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="fas fa-times me-2"></i>Cancel
-                </button>
-                <form id="deleteForm" method="POST" style="display: inline;">
-                    <button type="submit" class="btn btn-danger">
-                        <i class="fas fa-trash me-2"></i>Delete Student
-                    </button>
-                </form>
-            </div>
-        </div>
+        {% endif %}
     </div>
 </div>
-
-{% if students %}
-<table id="studentsTable" class="d-none">
-    <thead>
-        <tr>
-            <th>Student ID</th><th>Name</th><th>Roll</th><th>Department</th><th>Course</th><th>Year</th><th>Semester</th><th>Division</th><th>Gender</th><th>Email</th><th>Phone</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for student in students %}
-        <tr>
-            <td>{{ student.student_id }}</td><td>{{ student.name }}</td><td>{{ student.roll }}</td><td>{{ student.department }}</td><td>{{ student.course }}</td><td>{{ student.year }}</td><td>{{ student.semester }}</td><td>{{ student.division }}</td><td>{{ student.gender }}</td><td>{{ student.email }}</td><td>{{ student.phone }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-{% endif %}
 {% endblock %}
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('studentSearch');
-    if (searchInput) {
-        searchInput.addEventListener('keyup', function() {
-            const searchTerm = this.value.toLowerCase();
-            const studentItems = document.querySelectorAll('.student-item');
-            
-            studentItems.forEach(item => {
-                const text = item.textContent.toLowerCase();
-                if (text.includes(searchTerm)) {
-                    item.style.display = '';
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-        });
-    }
-});
-
-function showDeleteConfirmation(button, studentName, studentId) {
-    // Set the student name in the modal
-    document.getElementById('studentNameToDelete').textContent = studentName;
-    
-    // Set the form action
-    document.getElementById('deleteForm').action = `/delete_student/${studentId}`;
-    
-    // Show the modal
-    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-    deleteModal.show();
-}
-
-// --- THIS IS THE MISSING FUNCTION TO ADD ---
-function exportToCSV(tableId, filename) {
-    const table = document.getElementById(tableId);
-    if (!table) {
-        console.error('Table not found!');
-        return;
-    }
-
-    let csv = [];
-    // Get headers
-    const headers = [];
-    table.querySelectorAll('thead th').forEach(header => {
-        headers.push(header.innerText);
-    });
-    csv.push(headers.join(','));
-
-    // Get rows
-    table.querySelectorAll('tbody tr').forEach(row => {
-        const rowData = [];
-        row.querySelectorAll('td').forEach(cell => {
-            // Escape commas and wrap in quotes if necessary
-            let cellText = cell.innerText.replace(/"/g, '""');
-            if (cellText.includes(',')) {
-                cellText = `"${cellText}"`;
+    // Search functionality
+    document.getElementById('searchInput').addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        const studentCards = document.querySelectorAll('.student-card');
+        
+        studentCards.forEach(card => {
+            const studentInfo = card.getAttribute('data-student-info');
+            if (studentInfo.includes(searchTerm)) {
+                card.style.display = 'block';
+            } else {
+                card.style.display = 'none';
             }
-            rowData.push(cellText);
         });
-        csv.push(rowData.join(','));
     });
-
-    // Create a blob and trigger download
-    const blob = new Blob([csv.join('\n')], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    if (link.download !== undefined) {
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', filename);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
-}
 </script>
 {% endblock %}

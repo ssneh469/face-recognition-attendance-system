@@ -180,6 +180,49 @@ def add_student():
         
     return render_template('add_student.html')
 
+@app.route('/edit_student/<int:student_id>', methods=['GET', 'POST'])
+def edit_student(student_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    student = Student.query.get_or_404(student_id)
+    
+    if request.method == 'POST':
+        if 'photo' in request.files and request.files['photo'].filename != '':
+            file = request.files['photo']
+            original_filename = secure_filename(file.filename)
+            timestamp = int(time.time())
+            unique_filename = f"{timestamp}_{original_filename}"
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+            file.save(filepath)
+            
+            if student.photo and os.path.exists(os.path.join(app.config['UPLOAD_FOLDER'], student.photo)):
+                os.remove(os.path.join(app.config['UPLOAD_FOLDER'], student.photo))
+            
+            student.photo = unique_filename
+        
+        student.student_id = request.form['student_id']
+        student.name = request.form['name']
+        student.roll = request.form['roll']
+        student.department = request.form['department']
+        student.course = request.form['course']
+        student.year = request.form['year']
+        student.semester = request.form['semester']
+        student.division = request.form['division']
+        student.gender = request.form['gender']
+        student.dob = request.form['dob']
+        student.email = request.form['email']
+        student.phone = request.form['phone']
+        student.address = request.form['address']
+        student.teacher = request.form['teacher']
+
+        db.session.commit()
+        
+        flash('Student details updated successfully!', 'success')
+        return redirect(url_for('students'))
+        
+    return render_template('edit_student.html', student=student)
+
 @app.route('/delete_student/<int:student_id>', methods=['POST'])
 def delete_student(student_id):
     if 'user_id' not in session: return redirect(url_for('login'))
@@ -319,7 +362,7 @@ def recognize_face():
     if 'user_id' not in session: return jsonify({'error': 'Not authenticated'}), 401
     try:
         image_data = request.json.get('image').split(',')[1]
-        rgb_image = np.array(Image.open(io.BytesIO(base64.b64decode(image_data))).convert("RGB"))
+        rgb_image = np.array(Image.open(io.BytesIO(base64.b64decode(image_data)).convert("RGB")))
         face_locations = face_recognition.face_locations(rgb_image)
         face_encodings = face_recognition.face_encodings(rgb_image, face_locations)
 

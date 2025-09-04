@@ -1,238 +1,158 @@
 {% extends "base.html" %}
 
-{% block title %}Face Recognition - Face Recognition System{% endblock %}
+{% block title %}Face Recognition - Face Recognition Attendance{% endblock %}
 
 {% block extra_css %}
 <style>
-    /* Main body styling to match the dark theme */
-    body {
-        background-color: #111827;
-        background-image: linear-gradient(145deg, #1f2937 0%, #111827 100%);
-        color: #d1d5db;
-        font-family: 'Inter', sans-serif;
+    .camera-container {
+        position: relative;
+        max-width: 640px;
+        margin: 0 auto;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
     }
 
-    /* General card style using the "glassmorphism" effect */
-    .glass-card {
-        background-color: rgba(31, 41, 55, 0.5);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        border-radius: 1rem;
-        border: 1px solid rgba(75, 85, 99, 0.5);
-        padding: 2rem;
-        transition: all 0.3s ease;
-    }
-    
-    /* Video container and overlay */
-    .video-container {
-        position: relative;
-        border-radius: 0.75rem;
-        overflow: hidden;
-        border: 1px solid rgba(75, 85, 99, 0.5);
-    }
     #video {
         width: 100%;
         height: auto;
         display: block;
     }
+
     .camera-overlay {
         position: absolute;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background: rgba(17, 24, 39, 0.7);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(45deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+        pointer-events: none;
     }
 
-    /* Camera controls styling */
-    .camera-controls .btn {
-        border-radius: 0.5rem;
+    .recognition-status {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(10px);
+        padding: 1rem;
+        border-radius: 15px;
+        color: white;
+        text-align: center;
         font-weight: 600;
-        padding: 0.6rem 1.2rem;
     }
-    
-    /* Status indicator */
-    .status-indicator {
-        display: inline-block;
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        margin-right: 0.5rem;
-        transition: background-color 0.3s ease;
+
+    .controls {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        margin-top: 2rem;
+        flex-wrap: wrap;
     }
-    .status-indicator.active {
-        background: #22c55e; /* Green */
+
+    .recognition-log {
+        max-height: 300px;
+        overflow-y: auto;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 15px;
+        padding: 1rem;
+        margin-top: 2rem;
+    }
+
+    .log-entry {
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        border-left: 4px solid #2ecc71;
+    }
+
+    .log-entry.error {
+        border-left-color: #e74c3c;
+    }
+
+    .pulse {
         animation: pulse 2s infinite;
     }
-    .status-indicator.inactive {
-        background: #ef4444; /* Red */
-    }
+
     @keyframes pulse {
-        0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
-        70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
     }
-
-    /* Recognition results cards */
-    .result-card {
-        background-color: rgba(55, 65, 81, 0.6);
-        border-radius: 0.75rem;
-        padding: 1rem;
-        margin-bottom: 0.75rem;
-        border-left: 4px solid #4b5563;
-        transition: all 0.3s ease;
-    }
-    .result-card.success { border-left-color: #22c55e; }
-    .result-card.warning { border-left-color: #f59e0b; }
-    .result-card.error { border-left-color: #ef4444; }
-    .result-card.info { border-left-color: #3b82f6; }
-    
-    /* Student info card */
-    .student-info .glass-card {
-        background-color: rgba(34, 197, 94, 0.1) !important;
-        border-color: #22c55e !important;
-        animation: fadeInUp 0.5s ease-out;
-    }
-    
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    /* Badge styling */
-    .badge {
-        font-size: 0.75rem;
-        padding: 0.5rem 0.75rem;
-        border-radius: 0.5rem;
-    }
-    
-    /* Auto recognition button states */
-    .btn-warning:hover {
-        background-color: #f59e0b;
-        border-color: #f59e0b;
-    }
-    
-    .btn-danger:hover {
-        background-color: #dc2626;
-        border-color: #dc2626;
-    }
-
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="row">
-        <div class="col-lg-8 mb-4 mb-lg-0">
-            <div class="glass-card h-100">
-                <h3 class="mb-4 text-white"><i class="fas fa-camera me-2"></i>Live Recognition</h3>
-                
-                <div class="video-container">
-                    <video id="video" autoplay muted></video>
-                    <div class="camera-overlay" id="cameraOverlay">
-                        <div>
-                            <i class="fas fa-video-slash fa-2x mb-3 text-secondary"></i>
-                            <p class="text-secondary">Camera is off</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="d-flex justify-content-center flex-wrap gap-2 mt-4">
-                    <button class="btn btn-success" id="startCamera"><i class="fas fa-play me-2"></i>Start Camera</button>
-                    <button class="btn btn-danger" id="stopCamera" disabled><i class="fas fa-stop me-2"></i>Stop Camera</button>
-                    <button class="btn btn-primary" id="recognizeFace" disabled><i class="fas fa-search me-2"></i>Manual Recognize</button>
-                    <button class="btn btn-warning" id="autoRecognize" disabled><i class="fas fa-robot me-2"></i>Auto Mode</button>
-                </div>
-                
-                <div class="mt-3 text-center">
-                    <small class="text-muted">
-                        <i class="fas fa-info-circle me-1"></i>
-                        Auto Mode will continuously recognize faces and mark attendance automatically
-                    </small>
-                </div>
+<div style="padding: 2rem 0;">
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <h1 style="font-size: 2.5rem; background: linear-gradient(45deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+            <i class="fas fa-camera"></i> Face Recognition
+        </h1>
+        <p style="color: rgba(255, 255, 255, 0.7);">Position your face in front of the camera for attendance</p>
+    </div>
+
+    <div class="card">
+        <div class="camera-container">
+            <video id="video" autoplay muted playsinline></video>
+            <div class="camera-overlay"></div>
+            <div class="recognition-status" id="status">
+                <i class="fas fa-camera"></i> Initializing camera...
             </div>
         </div>
-        
-        <div class="col-lg-4">
-            <div class="glass-card h-100">
-                <h4 class="mb-3 text-white"><i class="fas fa-clipboard-check me-2"></i>Status & Results</h4>
-                
-                <div class="d-flex align-items-center mb-3">
-                    <span class="status-indicator inactive" id="statusIndicator"></span>
-                    <span id="statusText">Camera Inactive</span>
-                </div>
 
-                <div id="resultsContainer">
-                    <div class="result-card">
-                        <p class="mb-0 small">Results will appear here...</p>
-                    </div>
-                </div>
-                
-                <div id="studentInfo" class="mt-3" style="display: none;">
-                    <div class="glass-card" style="background-color: rgba(34, 197, 94, 0.1); border-color: #22c55e;">
-                        <div class="text-center">
-                            <i class="fas fa-user-check fa-2x text-success mb-2"></i>
-                            <h6 class="text-success mb-2" id="studentName">Student Name</h6>
-                            <div class="row text-center">
-                                <div class="col-6">
-                                    <small class="text-muted">Roll No</small>
-                                    <div class="fw-bold text-white" id="studentRoll">-</div>
-                                </div>
-                                <div class="col-6">
-                                    <small class="text-muted">Department</small>
-                                    <div class="fw-bold text-white" id="studentDept">-</div>
-                                </div>
-                            </div>
-                            <div class="mt-2">
-                                <span class="badge bg-success" id="attendanceStatus">Attendance Marked</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div class="controls">
+            <button id="startBtn" class="btn btn-primary" onclick="startCamera()">
+                <i class="fas fa-play"></i> Start Camera
+            </button>
+            <button id="captureBtn" class="btn btn-secondary" onclick="captureImage()" disabled>
+                <i class="fas fa-camera-retro"></i> Capture & Recognize
+            </button>
+            <button id="stopBtn" class="btn btn-danger" onclick="stopCamera()" disabled>
+                <i class="fas fa-stop"></i> Stop Camera
+            </button>
+        </div>
+
+        <div style="text-align: center; margin-top: 1rem;">
+            <label style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; color: rgba(255, 255, 255, 0.8);">
+                <input type="checkbox" id="autoCapture" style="margin: 0;">
+                Auto-capture every 3 seconds
+            </label>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-bottom: 1rem; color: #667eea;">
+            <i class="fas fa-list"></i> Recognition Log
+        </h3>
+        <div class="recognition-log" id="logContainer">
+            <p style="color: rgba(255, 255, 255, 0.6); text-align: center; font-style: italic;">
+                Recognition results will appear here...
+            </p>
+        </div>
+        <div style="text-align: center; margin-top: 1rem;">
+            <button class="btn btn-secondary" onclick="clearLog()">
+                <i class="fas fa-trash"></i> Clear Log
+            </button>
         </div>
     </div>
 </div>
-
-<canvas id="canvas" class="d-none"></canvas>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+    let video = document.getElementById('video');
+    let canvas = document.createElement('canvas');
+    let context = canvas.getContext('2d');
     let stream = null;
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    let isCameraActive = false;
-    let autoRecognitionInterval = null;
-    let lastRecognizedStudent = null;
-
-    // DOM elements
-    const startCameraBtn = document.getElementById('startCamera');
-    const stopCameraBtn = document.getElementById('stopCamera');
-    const recognizeFaceBtn = document.getElementById('recognizeFace');
-    const autoRecognizeBtn = document.getElementById('autoRecognize');
-    const cameraOverlay = document.getElementById('cameraOverlay');
-    const statusIndicator = document.getElementById('statusIndicator');
-    const statusText = document.getElementById('statusText');
-    const resultsContainer = document.getElementById('resultsContainer');
-    const studentInfo = document.getElementById('studentInfo');
-
-    // Event listeners
-    startCameraBtn.addEventListener('click', startCamera);
-    stopCameraBtn.addEventListener('click', stopCamera);
-    recognizeFaceBtn.addEventListener('click', recognizeFace);
-    autoRecognizeBtn.addEventListener('click', toggleAutoRecognition);
+    let autoCapture = false;
+    let autoCaptureInterval = null;
 
     async function startCamera() {
         try {
+            updateStatus('<i class="fas fa-spinner fa-spin"></i> Starting camera...', 'info');
+            
             stream = await navigator.mediaDevices.getUserMedia({ 
                 video: { 
                     width: { ideal: 640 }, 
@@ -240,208 +160,153 @@
                     facingMode: 'user'
                 } 
             });
+            
             video.srcObject = stream;
-            isCameraActive = true;
             
-            startCameraBtn.disabled = true;
-            stopCameraBtn.disabled = false;
-            recognizeFaceBtn.disabled = false;
-            autoRecognizeBtn.disabled = false;
-            cameraOverlay.style.display = 'none';
-            statusIndicator.className = 'status-indicator active';
-            statusText.textContent = 'Camera Active - Ready for Recognition';
+            video.onloadedmetadata = () => {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                updateStatus('<i class="fas fa-check-circle"></i> Camera ready - Position your face in the frame', 'success');
+                
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('captureBtn').disabled = false;
+                document.getElementById('stopBtn').disabled = false;
+            };
             
-            showResult('Camera started successfully. Click "Auto Mode" for continuous recognition.', 'success');
         } catch (error) {
-            showResult(`Error accessing camera: ${error.message}`, 'error');
+            console.error('Error accessing camera:', error);
+            updateStatus('<i class="fas fa-exclamation-triangle"></i> Camera access denied or not available', 'error');
         }
     }
 
     function stopCamera() {
         if (stream) {
             stream.getTracks().forEach(track => track.stop());
+            video.srcObject = null;
             stream = null;
         }
-        video.srcObject = null;
-        isCameraActive = false;
         
-        // Stop auto recognition
-        if (autoRecognitionInterval) {
-            clearInterval(autoRecognitionInterval);
-            autoRecognitionInterval = null;
-            autoRecognizeBtn.innerHTML = '<i class="fas fa-robot me-2"></i>Auto Mode';
-            autoRecognizeBtn.className = 'btn btn-warning';
+        if (autoCaptureInterval) {
+            clearInterval(autoCaptureInterval);
+            autoCaptureInterval = null;
         }
         
-        startCameraBtn.disabled = false;
-        stopCameraBtn.disabled = true;
-        recognizeFaceBtn.disabled = true;
-        autoRecognizeBtn.disabled = true;
-        cameraOverlay.style.display = 'flex';
-        statusIndicator.className = 'status-indicator inactive';
-        statusText.textContent = 'Camera Inactive';
+        updateStatus('<i class="fas fa-camera-slash"></i> Camera stopped', 'info');
         
-        // Hide student info
-        studentInfo.style.display = 'none';
-        lastRecognizedStudent = null;
-        
-        showResult('Camera stopped.', 'warning');
+        document.getElementById('startBtn').disabled = false;
+        document.getElementById('captureBtn').disabled = true;
+        document.getElementById('stopBtn').disabled = true;
+        document.getElementById('autoCapture').checked = false;
     }
 
-    function toggleAutoRecognition() {
-        if (autoRecognitionInterval) {
-            // Stop auto recognition
-            clearInterval(autoRecognitionInterval);
-            autoRecognitionInterval = null;
-            autoRecognizeBtn.innerHTML = '<i class="fas fa-robot me-2"></i>Auto Mode';
-            autoRecognizeBtn.className = 'btn btn-warning';
-            showResult('Auto recognition stopped.', 'warning');
-        } else {
-            // Start auto recognition
-            autoRecognitionInterval = setInterval(autoRecognize, 2000); // Every 2 seconds
-            autoRecognizeBtn.innerHTML = '<i class="fas fa-pause me-2"></i>Stop Auto';
-            autoRecognizeBtn.className = 'btn btn-danger';
-            showResult('Auto recognition started. Looking for faces...', 'info');
-        }
-    }
-
-    async function autoRecognize() {
-        if (!isCameraActive) return;
-        
-        try {
-            const result = await captureAndRecognize();
-            if (result && result.student) {
-                // Only show if it's a different student or first time
-                if (!lastRecognizedStudent || lastRecognizedStudent.student_id !== result.student.student_id) {
-                    lastRecognizedStudent = result.student;
-                    showStudentInfo(result.student, result.attendance);
-                    showResult(`✅ ${result.student.name} recognized! Attendance: ${result.attendance.status}`, 'success');
-                }
-            }
-        } catch (error) {
-            console.error('Auto recognition error:', error);
-        }
-    }
-
-    async function recognizeFace() {
-        if (!isCameraActive) {
-            showResult('Camera is not active.', 'error');
+    function captureImage() {
+        if (!stream) {
+            updateStatus('<i class="fas fa-exclamation-triangle"></i> Camera not started', 'error');
             return;
         }
-        
-        showResult('Recognizing face...', 'info');
-        const result = await captureAndRecognize();
-        
-        if (result && result.student) {
-            showStudentInfo(result.student, result.attendance);
-            showResult(`✅ ${result.student.name} recognized! Attendance: ${result.attendance.status}`, 'success');
-        }
-    }
 
-    async function captureAndRecognize() {
-        try {
-            // Capture frame from video
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const imageData = canvas.toDataURL('image/jpeg');
-            
-            // Send to server for recognition
-            const response = await fetch('/api/recognize_face', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ image: imageData })
-            });
-            
-            const result = await response.json();
-            
-            if (response.ok) {
-                if (result.student) {
-                    return result;
-                } else {
-                    showResult(result.message, 'warning');
-                    return null;
-                }
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = canvas.toDataURL('image/jpeg', 0.8);
+        
+        updateStatus('<i class="fas fa-spinner fa-spin"></i> Processing face recognition...', 'info');
+        
+        fetch('/api/recognize_face', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ image: imageData })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.recognized_students && data.recognized_students.length > 0) {
+                const student = data.recognized_students[0].student;
+                updateStatus(`<i class="fas fa-check-circle"></i> Recognized: ${student.name} (${student.student_id})`, 'success');
+                addLogEntry(`✅ ${student.name} (ID: ${student.student_id}) - Attendance marked`, 'success');
+            } else if (data.message === 'No face detected') {
+                updateStatus('<i class="fas fa-user-slash"></i> No face detected in image', 'warning');
+                addLogEntry('⚠️ No face detected - Please position your face clearly in the frame', 'warning');
             } else {
-                showResult(result.error || 'Recognition failed.', 'error');
-                return null;
+                updateStatus('<i class="fas fa-user-times"></i> Face detected but not recognized', 'warning');
+                addLogEntry('❌ Unknown face detected - Student not in database', 'error');
             }
-        } catch (error) {
-            showResult(`Recognition request failed: ${error.message}`, 'error');
-            return null;
+        })
+        .catch(error => {
+            console.error('Recognition error:', error);
+            updateStatus('<i class="fas fa-exclamation-triangle"></i> Recognition failed', 'error');
+            addLogEntry('❌ Recognition failed - Please try again', 'error');
+        });
+    }
+
+    function updateStatus(message, type) {
+        const statusElement = document.getElementById('status');
+        statusElement.innerHTML = message;
+        
+        // Remove existing classes
+        statusElement.classList.remove('pulse');
+        
+        // Add pulse animation for certain types
+        if (type === 'success' || type === 'error') {
+            statusElement.classList.add('pulse');
         }
     }
 
-    function showStudentInfo(student, attendance) {
-        // Update student info display
-        document.getElementById('studentName').textContent = student.name;
-        document.getElementById('studentRoll').textContent = student.roll;
-        document.getElementById('studentDept').textContent = student.department;
+    function addLogEntry(message, type) {
+        const logContainer = document.getElementById('logContainer');
+        const timestamp = new Date().toLocaleTimeString();
         
-        // Update attendance status
-        const statusElement = document.getElementById('attendanceStatus');
-        if (attendance.status === 'marked') {
-            statusElement.textContent = 'Attendance Marked';
-            statusElement.className = 'badge bg-success';
-        } else if (attendance.status === 'already_marked') {
-            statusElement.textContent = 'Already Marked';
-            statusElement.className = 'badge bg-warning';
-        } else {
-            statusElement.textContent = 'Error';
-            statusElement.className = 'badge bg-danger';
+        // Clear the placeholder message if it exists
+        if (logContainer.children.length === 1 && logContainer.children[0].tagName === 'P') {
+            logContainer.innerHTML = '';
         }
         
-        // Show student info
-        studentInfo.style.display = 'block';
-        
-        // Auto-hide after 10 seconds
-        setTimeout(() => {
-            if (lastRecognizedStudent && lastRecognizedStudent.student_id === student.student_id) {
-                studentInfo.style.display = 'none';
-            }
-        }, 10000);
-    }
-
-    function showResult(message, type = 'info') {
-        const resultCard = document.createElement('div');
-        resultCard.className = `result-card ${type}`;
-        resultCard.innerHTML = `
-            <div class="d-flex align-items-center">
-                <i class="fas fa-${getIconForType(type)} me-2"></i>
-                <p class="mb-0 small">${message}</p>
+        const logEntry = document.createElement('div');
+        logEntry.className = `log-entry ${type === 'error' || type === 'warning' ? 'error' : ''}`;
+        logEntry.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>${message}</span>
+                <small style="color: rgba(255, 255, 255, 0.6);">${timestamp}</small>
             </div>
         `;
         
-        // Add timestamp
-        const timestamp = new Date().toLocaleTimeString();
-        resultCard.innerHTML += `<small class="text-muted">${timestamp}</small>`;
+        logContainer.insertBefore(logEntry, logContainer.firstChild);
         
-        // Add to results container
-        resultsContainer.insertBefore(resultCard, resultsContainer.firstChild);
-        
-        // Keep only last 5 results
-        const results = resultsContainer.querySelectorAll('.result-card');
-        if (results.length > 5) {
-            results[results.length - 1].remove();
+        // Keep only last 10 entries
+        while (logContainer.children.length > 10) {
+            logContainer.removeChild(logContainer.lastChild);
         }
     }
 
-    function getIconForType(type) {
-        switch(type) {
-            case 'success': return 'check-circle';
-            case 'error': return 'exclamation-triangle';
-            case 'warning': return 'exclamation-triangle';
-            case 'info': return 'info-circle';
-            default: return 'info-circle';
-        }
+    function clearLog() {
+        const logContainer = document.getElementById('logContainer');
+        logContainer.innerHTML = '<p style="color: rgba(255, 255, 255, 0.6); text-align: center; font-style: italic;">Recognition results will appear here...</p>';
     }
+
+    // Auto-capture functionality
+    document.getElementById('autoCapture').addEventListener('change', function() {
+        autoCapture = this.checked;
+        
+        if (autoCapture && stream) {
+            autoCaptureInterval = setInterval(() => {
+                if (stream && !document.getElementById('captureBtn').disabled) {
+                    captureImage();
+                }
+            }, 3000);
+            addLogEntry('🔄 Auto-capture enabled (every 3 seconds)', 'info');
+        } else {
+            if (autoCaptureInterval) {
+                clearInterval(autoCaptureInterval);
+                autoCaptureInterval = null;
+            }
+            if (!autoCapture) {
+                addLogEntry('⏹️ Auto-capture disabled', 'info');
+            }
+        }
+    });
 
     // Cleanup on page unload
-    window.addEventListener('beforeunload', stopCamera);
-    
-    // Initialize
-    document.addEventListener('DOMContentLoaded', function() {
-        showResult('Face Recognition System Ready. Start camera to begin.', 'info');
+    window.addEventListener('beforeunload', function() {
+        stopCamera();
     });
 </script>
 {% endblock %}
